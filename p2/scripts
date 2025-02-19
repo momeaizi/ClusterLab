@@ -1,0 +1,27 @@
+#!/bin/bash
+
+
+echo " ******** DEPLOYMENT ********"
+
+cd deployment 
+kubectl apply -f .
+
+sleep 10s ;  kubectl wait --for=condition=Ready pods --all --timeout=300s 
+
+
+echo " ******** SERVICES ********"
+
+cd ../services 
+kubectl apply -f . 
+
+kubectl wait --for=jsonpath='{.spec.selector.app}' -f ./ --timeout=300s 
+
+
+echo " ******** INGRESS ********"
+cd ../ingress 
+ kubectl apply -f . 
+
+
+
+
+echo " ******** END ********"
