@@ -1,8 +1,18 @@
 #!/bin/bash
 
+sudo apt update -y && sudo apt upgrade -y 
+command -v curl
+if [ $? -gt 0 ]; then
+  sudo apt install curl -y 
+fi
+
+
+command -v k3s
+if [ $? -gt 0 ]; then
+  curl -sfL https://get.k3s.io | sh -s - --flannel-iface eth1
+fi
 
 echo " ******** DEPLOYMENT ********"
-
 cd deployment 
 kubectl apply -f .
 
