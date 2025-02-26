@@ -31,6 +31,14 @@ status_msg() {
   echo -e "${GREEN}✔ $1${RESET}"
 }
 
+# Install Helm if not installed
+print_header "Checking and Installing Helm"
+if ! command -v helm &> /dev/null; then
+  curl https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash || handle_error "Failed to install Helm"
+  status_msg "Helm installed successfully"
+else
+  status_msg "Helm is already installed"
+fi
 
 # Install or upgrade GitLab using Helm
 print_header "Installing or Upgrading GitLab"
@@ -43,9 +51,6 @@ helm upgrade --install my-gitlab gitlab/gitlab --create-namespace --namespace gi
 # Wait until the webservice is ready
 print_header "Waiting for GitLab Webservice to be Ready"
 kubectl --kubeconfig $CONFIG wait --for=condition=ready --timeout=1800s pod -l app=webservice -n gitlab || handle_error "GitLab webservice did not become ready in time"
-
-
-
 
 # Port-forward to access GitLab
 print_header "Setting Up Port Forwarding to Access GitLab"
@@ -64,3 +69,4 @@ echo -e "${GREEN}Username: root${RESET}"
 echo -e "${GREEN}Password: $GITLAB_PASSWORD${RESET}"
 
 print_header "Deployment Complete! GitLab is Ready."
+

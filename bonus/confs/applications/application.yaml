@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'http://10.32.127.125:8887/root/will42-playground.git'
+    repoURL: 'http://10.0.2.15:8887/root/will42-playground.git'
     targetRevision: HEAD
     path: manifests
   destination:
