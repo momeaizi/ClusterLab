@@ -1,0 +1,18 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: wil-playground-gitlab-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'http://10.32.127.125:8887/root/will42-playground.git'
+    targetRevision: HEAD
+    path: manifests
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
