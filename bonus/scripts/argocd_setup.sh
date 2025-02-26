@@ -68,6 +68,10 @@ print_header "Configuring ArgoCD to Sync with Repository"
 kubectl --kubeconfig $CONFIG apply -f ./confs/applications/application.yaml -n argocd || handle_error "Failed to apply application.yaml."
 status_msg "ArgoCD is now monitoring the repository for changes."
 
+
+sleep 5
+
+
 # Wait for application pods to be ready
 print_header "Waiting for Application Pods to Start"
 kubectl --kubeconfig $CONFIG wait --for=condition=Ready pods --all -n dev --timeout=300s || handle_error "Application pods did not become ready."

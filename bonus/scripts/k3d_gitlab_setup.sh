@@ -31,16 +31,6 @@ status_msg() {
   echo -e "${GREEN}✔ $1${RESET}"
 }
 
-# Create required namespaces
-print_header "Setting Up Kubernetes Namespaces"
-for ns in dev argocd; do
-  if kubectl --kubeconfig $CONFIG get namespace "$ns" &> /dev/null; then
-    status_msg "Namespace '$ns' already exists."
-  else
-    kubectl --kubeconfig $CONFIG create namespace "$ns" || handle_error "Failed to create namespace '$ns'."
-    status_msg "Namespace '$ns' created successfully."
-  fi
-done
 
 # Install or upgrade GitLab using Helm
 print_header "Installing or Upgrading GitLab"
@@ -54,18 +44,23 @@ helm upgrade --install my-gitlab gitlab/gitlab --create-namespace --namespace gi
 print_header "Waiting for GitLab Webservice to be Ready"
 kubectl --kubeconfig $CONFIG wait --for=condition=ready --timeout=1800s pod -l app=webservice -n gitlab || handle_error "GitLab webservice did not become ready in time"
 
-# Retrieve the initial root password for GitLab
-print_header "Retrieving GitLab Initial Root Password"
-export GITLAB_PASSWORD=$(kubectl --kubeconfig $CONFIG get secret my-gitlab-gitlab-initial-root-password -n gitlab -o jsonpath="{.data.password}" | base64 --decode) || handle_error "Failed to retrieve GitLab initial root password"
-echo -e "${GREEN}GITLAB PASSWORD: $GITLAB_PASSWORD${RESET}"
+
+
 
 # Port-forward to access GitLab
 print_header "Setting Up Port Forwarding to Access GitLab"
 if pgrep -f "kubectl port-forward svc/my-gitlab-webservice-default" > /dev/null; then
-  status_msg "Port forwarding is already set up"
+  status_msg "Port forwarding is already set up."
 else
   kubectl --kubeconfig $CONFIG port-forward svc/my-gitlab-webservice-default -n gitlab --address 0.0.0.0 8887:8181 2>&1 >/dev/null &
-  echo -e "${GREEN}GitLab is accessible at http://localhost:8887${RESET}"
+  status_msg "GitLab UI is now accessible."
 fi
 
-print_header "Deployment Complete! Everything is Set Up."
+# Display GitLab access information
+print_header "GitLab Access Credentials"
+export GITLAB_PASSWORD=$(kubectl --kubeconfig $CONFIG get secret my-gitlab-gitlab-initial-root-password -n gitlab -o jsonpath="{.data.password}" | base64 --decode) || handle_error "Failed to retrieve GitLab initial root password"
+echo -e "${GREEN}URL:      http://localhost:8887${RESET}"
+echo -e "${GREEN}Username: root${RESET}"
+echo -e "${GREEN}Password: $GITLAB_PASSWORD${RESET}"
+
+print_header "Deployment Complete! GitLab is Ready."
