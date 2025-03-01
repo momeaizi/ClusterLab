@@ -5,7 +5,7 @@ apt-get update
 apt-get upgrade -y
 
 # Install required packages
-apt-get install -y curl openssh-server
+apt-get install -y curl net-tools
 
 # Install K3s server (master node)
 curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--bind-address=${MASTER_IP} --node-external-ip=${MASTER_IP}" sh -

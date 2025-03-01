@@ -5,7 +5,9 @@ apt-get update
 apt-get upgrade -y
 
 # Install required packages
-apt-get install -y curl openssh-server
+apt-get install -y curl
+
+echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
 
 # Wait for the node token to be available
 while [ ! -f /vagrant/node-token ]; do
