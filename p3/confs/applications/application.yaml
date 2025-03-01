@@ -6,7 +6,7 @@ metadata:
 spec:
   project: default
   source:
-    repoURL: 'https://github.com/momeaizi/will42-playground.git'
+    repoURL: 'https://github.com/momeaizi/abouchfa-playground.git'
     targetRevision: HEAD
     path: manifests
   destination:
