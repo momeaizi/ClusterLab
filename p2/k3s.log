@@ -1,0 +1,2 @@
+nohup: ignoring input
+time="2025-03-01T15:38:39Z" level=fatal msg="server requires additional privilege when not run with --rootless and/or --disable-agent: not running as root"
