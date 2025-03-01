@@ -1,37 +1,49 @@
 #!/bin/bash
 
-sudo apt update -y && sudo apt upgrade -y 
-command -v curl
-if [ $? -gt 0 ]; then
-  sudo apt install curl -y 
+# Ensure curl is installed
+if ! command -v curl &> /dev/null; then
+  sudo apt install curl -y
 fi
 
-
-command -v k3s
-if [ $? -gt 0 ]; then
-  curl -sfL https://get.k3s.io | sh -s - --flannel-iface eth1
+# Uninstall existing k3s if present
+if command -v k3s &> /dev/null; then
+  sudo /usr/local/bin/k3s-uninstall.sh
 fi
 
-echo " ******** DEPLOYMENT ********"
-cd deployment 
-kubectl apply -f .
+# Install and start k3s
+if ! command -v k3s &> /dev/null; then
+  sudo curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--write-kubeconfig-mode=644 --node-ip 127.0.0.1 --bind-address=127.0.0.1" sh -s -
+  
+  # Start k3s server manually
+  sudo nohup /usr/local/bin/k3s server --write-kubeconfig-mode=644 --node-ip 127.0.0.1 --bind-address=127.0.0.1 > /var/log/k3s.log 2>&1 &
+  
+  # Wait for API server to start
+  export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+  until kubectl get nodes >/dev/null 2>&1; do
+    echo "Waiting for k3s API server to start..."
+    sleep 5
+  done
+  kubectl get nodes
+fi
 
-sleep 10s ;  kubectl wait --for=condition=Ready pods --all --timeout=300s 
+echo "******** DEPLOYMENT ********"
+cd deployment
+kubectl apply -f . --validate=false
 
+# Wait for pods to be ready
+echo "Waiting for pods to be ready..."
+kubectl wait --for=condition=Ready pods --all --timeout=300s
 
-echo " ******** SERVICES ********"
+echo "******** SERVICES ********"
+cd ../services
+kubectl apply -f . --validate=false
 
-cd ../services 
-kubectl apply -f . 
+# Wait for services to be created
+echo "Waiting for services to be ready..."
+kubectl wait --for=jsonpath='{.spec.selector.app}' -f ./ --timeout=300s
 
-kubectl wait --for=jsonpath='{.spec.selector.app}' -f ./ --timeout=300s 
+echo "******** INGRESS ********"
+cd ../ingress
+kubectl apply -f . --validate=false
 
-
-echo " ******** INGRESS ********"
-cd ../ingress 
- kubectl apply -f . 
-
-
-
-
-echo " ******** END ********"
+echo "******** END ********"

@@ -16,10 +16,6 @@ spec:
                 name: app1-src
                 port:
                   number: 80
-<<<<<<< HEAD
-=======
-
->>>>>>> 3cd64d226e35efee7a072bb2553bd313237e6a43
     - host: app2.com
       http:
         paths:
@@ -30,7 +26,6 @@ spec:
                 name: app2-src
                 port:
                   number: 80
-<<<<<<< HEAD
     - http:
         paths:
           - path: /
@@ -40,11 +35,3 @@ spec:
                 name: app3-src
                 port:
                   number: 80
-=======
-
-  defaultBackend:
-    service:
-      name: app3-src
-      port:
-        number: 80
->>>>>>> 3cd64d226e35efee7a072bb2553bd313237e6a43
