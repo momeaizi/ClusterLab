@@ -3,6 +3,7 @@ MASTER_IP = "192.168.56.110"    # Server IP address
 WORKER_IP = "192.168.56.111"    # Worker IP address
 MASTER_NAME = "abouchfaS"       # Server hostname
 WORKER_NAME = "abouchfaSW"      # Worker hostname
+NODE_TOKEN_FILE = "/vagrant/node-token"
 
 Vagrant.configure("2") do |config|
   # Server Node Configuration
@@ -20,8 +21,7 @@ Vagrant.configure("2") do |config|
 
     # Provisioning script with environment variables
     master.vm.provision "shell", path: "scripts/master.sh", env: {
-      "MASTER_IP" => MASTER_IP,
-      "NODE_TOKEN_FILE" => "/vagrant/node-token"
+      "NODE_TOKEN_FILE" => NODE_TOKEN_FILE
     }
   end
 
@@ -39,7 +39,7 @@ Vagrant.configure("2") do |config|
 
     worker.vm.provision "shell", path: "scripts/worker.sh", env: {
       "MASTER_IP" => MASTER_IP,
-      "NODE_TOKEN_FILE" => "/vagrant/node-token"
+      "NODE_TOKEN_FILE" => NODE_TOKEN_FILE
     }
   end
 end
