@@ -168,24 +168,6 @@ sudo journalctl -u k3s         # On master
 sudo journalctl -u k3s-agent   # On worker
 ```
 
-## Common Issues and Solutions
-
-### Network Issues
-1. IP Conflict
-   - Check VirtualBox network settings
-   - Verify no other VMs use same IPs
-
-### K3s Issues
-1. Worker Not Joining
-   - Verify token file exists and is readable
-   - Check network connectivity between nodes
-   - Ensure correct IP configuration
-
-2. Service Failures
-   - Check system resources
-   - Verify service status and logs
-   - Ensure proper network interface configuration
-
 ## Quick Reference Commands
 
 ### Vagrant Management
@@ -211,51 +193,35 @@ kubectl describe node      # Node details
    - Assigns IP addresses and hostnames
 
 2. **Server Node Setup**
-   - Updates system packages
-   - Installs K3s in server mode
-   - Generates node token for worker
-   - Configures SSH access
-   - Sets up kubectl
+   - Updates system packages and installs required tools (curl, net-tools)
+   - Installs K3s in server mode with Flannel configured for eth1
+   - Waits for the server to be operational
+   - Generates and shares node token for worker
 
 3. **Worker Node Setup**
-   - Updates system packages
-   - Waits for server node token
-   - Joins K3s cluster as agent
-   - Configures SSH access
+   - Updates system packages and installs required tools
+   - Waits for server node token to be available
+   - Joins K3s cluster as agent using the token
+   - Configures Flannel to use eth1 for cluster communication
 
 4. **Networking**
    - Private network (192.168.56.0/24)
    - eth0: NAT (internet access)
    - eth1: Host-only (inter-VM communication)
 
-## Troubleshooting
-
-### Common Issues:
-
-1. **VirtualBox Network Issues**
-   - Solution: Ensure no IP conflicts
-   - Check VirtualBox network settings
-
-2. **K3s Token Issues**
-   - Solution: Verify token file exists in /vagrant
-   - Check file permissions
-
-3. **SSH Access Problems**
-   - Solution: Verify key generation
-   - Check authorized_keys permissions
-
-### Verification Commands:
+## Verification Commands:
 
 ```bash
 # Check node status
 kubectl get nodes
 
-# Verify SSH access
-ssh vagrant@192.168.56.111 -i ~/.ssh/id_rsa
-
 # Check K3s service
 systemctl status k3s     # On server
 systemctl status k3s-agent  # On worker
+
+# Check logs
+journalctl -u k3s          # On server
+journalctl -u k3s-agent    # On worker
 ```
 
 ## Usage
