@@ -7,6 +7,9 @@ sudo apt-get upgrade -y
 # Install required packages
 sudo apt-get install curl -y
 
+# Install net-tools for ifconfig command
+sudo apt-get install net-tools -y 
+
 # Install K3s server (master node)
 curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644 --flannel-iface=eth1
 
