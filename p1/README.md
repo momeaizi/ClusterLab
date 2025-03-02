@@ -6,7 +6,7 @@
 3. [Project Structure](#project-structure)
 4. [Detailed Implementation](#detailed-implementation)
 5. [How It Works](#how-it-works)
-6. [Troubleshooting](#troubleshooting)
+6. [Usage](#usage)
 
 ## Overview
 
@@ -208,21 +208,6 @@ kubectl describe node      # Node details
    - Private network (192.168.56.0/24)
    - eth0: NAT (internet access)
    - eth1: Host-only (inter-VM communication)
-
-## Verification Commands:
-
-```bash
-# Check node status
-kubectl get nodes
-
-# Check K3s service
-systemctl status k3s     # On server
-systemctl status k3s-agent  # On worker
-
-# Check logs
-journalctl -u k3s          # On server
-journalctl -u k3s-agent    # On worker
-```
 
 ## Usage
 
