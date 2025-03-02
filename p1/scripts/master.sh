@@ -1,14 +1,17 @@
 #!/bin/bash
 
 # Update system
-apt-get update
-apt-get upgrade -y
+sudo apt-get update
+sudo apt-get upgrade -y
 
 # Install required packages
-apt-get install -y curl net-tools
+sudo apt-get install curl -y
+
+# Set DNS
+echo "nameserver 8.8.8.8" | sudo tee /etc/resolv.conf > /dev/null
 
 # Install K3s server (master node)
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--bind-address=${MASTER_IP} --node-external-ip=${MASTER_IP}" sh -
+curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644 --flannel-iface=eth1
 
 # Wait for K3s to be ready
 while ! kubectl get node 2>/dev/null; do
