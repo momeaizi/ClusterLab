@@ -51,80 +51,156 @@ p1/
 
 ## Detailed Implementation
 
-### 1. Vagrantfile Breakdown
+### 1. Vagrantfile Configuration
 
+#### Global Variables
 ```ruby
-# Global Variables
 MASTER_IP = "192.168.56.110"    # Server IP address
 WORKER_IP = "192.168.56.111"    # Worker IP address
 MASTER_NAME = "abouchfaS"       # Server hostname
 WORKER_NAME = "abouchfaSW"      # Worker hostname
-
-Vagrant.configure("2") do |config|
-  # Server Node Configuration
-  config.vm.define MASTER_NAME do |master|
-    master.vm.box = "ubuntu/focal64"  # Ubuntu 20.04 LTS
-    master.vm.hostname = MASTER_NAME
-    master.vm.network "private_network", ip: MASTER_IP
-    
-    # VirtualBox-specific settings
-    master.vm.provider "virtualbox" do |vb|
-      vb.name = MASTER_NAME
-      vb.memory = 1024    # RAM allocation
-      vb.cpus = 1         # CPU allocation
-    end
-
-    # Provisioning script with environment variables
-    master.vm.provision "shell", path: "scripts/master.sh", env: {
-      "MASTER_IP" => MASTER_IP,
-      "NODE_TOKEN_FILE" => "/vagrant/node-token"
-    }
-  end
-
-  # Worker Node Configuration (similar structure)
-  config.vm.define WORKER_NAME do |worker|
-    # ... similar configuration ...
-  end
-end
+NODE_TOKEN_FILE = "/vagrant/node-token"
 ```
 
-### 2. Server Node Provisioning (master.sh)
+These constants are defined for easy configuration and reuse throughout the Vagrantfile.
 
+#### VM Configuration (Both Nodes)
+- Uses Debian Bookworm 64-bit as base OS
+- Configures private network with static IPs
+- Allocates 1GB RAM and 1 CPU per node
+- Sets up hostname and VirtualBox-specific settings
+- Mounts shared directory for token exchange
+
+#### Environment Variables
+- Master node receives: `NODE_TOKEN_FILE`
+- Worker node receives: `MASTER_IP` and `NODE_TOKEN_FILE`
+
+### 2. Master Node Provisioning Script (master.sh)
+
+#### System Preparation
 ```bash
-# System Updates
-apt-get update
-apt-get upgrade -y
+sudo apt-get update
+sudo apt-get upgrade -y
+sudo apt-get install curl net-tools -y
+```
+- Updates package list and system
+- Installs required tools (curl for downloads, net-tools for networking)
 
-# Required Packages
-apt-get install -y curl openssh-server
+#### K3s Server Installation
+```bash
+curl -sfL https://get.k3s.io | sh -s - server --write-kubeconfig-mode 644 --flannel-iface=eth1
+```
+- Downloads and installs K3s in server mode
+- Sets kubeconfig permissions to 644 (readable by all)
+- Configures Flannel to use eth1 for cluster communication
 
-# K3s Installation (Server Mode)
-curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="--bind-address=${MASTER_IP} --node-external-ip=${MASTER_IP}" sh -
+#### Cluster Readiness Check
+```bash
+while ! kubectl get node 2>/dev/null; do
+    sleep 1
+done
+```
+- Loops until K3s server is operational
+- Suppresses errors during checking
 
-# Node Token Generation
-cat /var/lib/rancher/k3s/server/node-token > /vagrant/node-token
+#### Token Generation
+```bash
+cat /var/lib/rancher/k3s/server/node-token > $NODE_TOKEN_FILE
+```
+- Exports node token for worker authentication
+- Saves to shared directory for worker access
 
-# Kubectl Setup
-curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-chmod +x kubectl
-mv kubectl /usr/local/bin/
+### 3. Worker Node Provisioning Script (worker.sh)
 
-# SSH Configuration
-mkdir -p /home/vagrant/.ssh
-chmod 700 /home/vagrant/.ssh
-ssh-keygen -t rsa -N "" -f /home/vagrant/.ssh/id_rsa
-cat /home/vagrant/.ssh/id_rsa.pub >> /home/vagrant/.ssh/authorized_keys
+#### Token Availability Check
+```bash
+while [ ! -f $NODE_TOKEN_FILE ]; do
+    sleep 1
+done
+```
+- Waits for master node to generate token
+- Ensures proper cluster joining sequence
+
+#### K3s Agent Installation
+```bash
+curl -sfL https://get.k3s.io | K3S_URL="https://${MASTER_IP}:6443" K3S_TOKEN=$(cat $NODE_TOKEN_FILE) sh -s - --flannel-iface=eth1
+```
+- Installs K3s in agent mode
+- Connects to master using provided token
+- Uses eth1 for cluster networking
+- Port 6443 is the default Kubernetes API server port
+
+## Networking Details
+
+### Network Interfaces
+- eth0: NAT interface for internet access
+- eth1: Host-only network for inter-VM communication
+- Flannel configured to use eth1 for cluster traffic
+
+### Network Configuration
+- Private network subnet: 192.168.56.0/24
+- Master node: 192.168.56.110
+- Worker node: 192.168.56.111
+- API Server port: 6443
+
+## Verification and Management
+
+### Cluster Status
+```bash
+# On master node
+kubectl get nodes        # List all nodes
+kubectl get pods -A      # List all pods in all namespaces
 ```
 
-### 3. Worker Node Provisioning (worker.sh)
-
+### Service Status
 ```bash
-# System Updates (similar to server)
+# On master node
+systemctl status k3s
 
-# K3s Installation (Agent Mode)
-curl -sfL https://get.k3s.io | K3S_URL="https://${MASTER_IP}:6443" K3S_TOKEN=$(cat /vagrant/node-token) sh -
+# On worker node
+systemctl status k3s-agent
+```
 
-# SSH Configuration (similar to server)
+### Logs
+```bash
+# View K3s logs
+sudo journalctl -u k3s         # On master
+sudo journalctl -u k3s-agent   # On worker
+```
+
+## Common Issues and Solutions
+
+### Network Issues
+1. IP Conflict
+   - Check VirtualBox network settings
+   - Verify no other VMs use same IPs
+
+### K3s Issues
+1. Worker Not Joining
+   - Verify token file exists and is readable
+   - Check network connectivity between nodes
+   - Ensure correct IP configuration
+
+2. Service Failures
+   - Check system resources
+   - Verify service status and logs
+   - Ensure proper network interface configuration
+
+## Quick Reference Commands
+
+### Vagrant Management
+```bash
+vagrant up          # Start cluster
+vagrant halt        # Stop cluster
+vagrant destroy -f  # Delete cluster
+vagrant ssh         # Connect to VMs
+```
+
+### Cluster Management
+```bash
+kubectl get nodes -o wide  # Detailed node info
+kubectl get pods -A        # All pods in cluster
+kubectl describe node      # Node details
 ```
 
 ## How It Works
